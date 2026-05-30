@@ -45,111 +45,168 @@ class _NotesListScreenState extends State<NotesListScreen> {
             }
           },
           child: Scaffold(
-          appBar: AppBar(
-            title: _currentFolder.isEmpty
-                ? const Text('Stonepad')
-                : Text(_buildBreadcrumb()),
-            actions: [
-              // Sync status indicator + manual sync button
-              Consumer<SyncStateNotifier>(
-                builder: (context, syncState, _) {
-                  return Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Sync state icon
-                      _syncStateIcon(syncState.state),
-                      // Manual sync button
-                      IconButton(
-                        icon: const Icon(Icons.sync),
-                        tooltip: 'Sync now',
-                        onPressed: () {
-                          final syncService = context.read<SyncService>();
-                          syncService.manualSync();
-                        },
-                      ),
-                    ],
-                  );
-                },
-              ),
-              IconButton(
-                icon: const Icon(Icons.create_new_folder_outlined),
-                tooltip: 'New Folder',
-                onPressed: () => _createFolder(),
-              ),
-              IconButton(
-                icon: const Icon(Icons.note_add),
-                tooltip: 'New Note',
-                onPressed: () => _createNote(),
-              ),
-              IconButton(
-                icon: const Icon(Icons.settings),
-                onPressed: () => Navigator.pushNamed(context, '/settings'),
-              ),
-            ],
-          ),
-          body: ListView(
-            children: [
-              if (_currentFolder.isNotEmpty)
-                ListTile(
-                  leading: const Icon(Icons.arrow_back),
-                  title: const Text('..'),
-                  onTap: () => _navigateUp(),
-                ),
-              ...folders.map((f) => ListTile(
-                    leading: const Icon(Icons.folder, color: Colors.amber),
-                    title: Text(f.split('/').last),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => setState(() => _currentFolder = f),
-                    onLongPress: () => _showFolderActions(f),
-                  )),
-              ...notes
-                .where((p) => !p.endsWith('/.folder'))
-                .map((notePath) {
-                final entry = notesState.manifest.notes[notePath];
-                if (entry == null) return const SizedBox.shrink();
-                final statusIcon = _syncStatusIcon(entry.status.name);
-                return ListTile(
-                  leading: const Icon(Icons.description, color: Colors.grey),
-                  title: Text(notePath.split('/').last.replaceAll('.md', '')),
-                  subtitle: Text(notePath),
-                  trailing: statusIcon,
-                  onTap: () => _openNote(notesState, notePath),
-                  onLongPress: () => _showNoteActions(notesState, notePath),
-                );
-              }),
-              if (folders.isEmpty && notes.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 64),
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.auto_stories,
-                          size: 48,
-                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.15),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No notes yet',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Tap + to create your first note.',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
-                          ),
-                        ),
-                      ],
+            body: CustomScrollView(
+              slivers: [
+                SliverAppBar.large(
+                  title: _currentFolder.isEmpty
+                      ? const Text('Stonepad')
+                      : Text(_buildBreadcrumb()),
+                  actions: [
+                    // Sync status indicator + manual sync button
+                    Consumer<SyncStateNotifier>(
+                      builder: (context, syncState, _) {
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Sync state icon
+                            _syncStateIcon(syncState.state),
+                            // Manual sync button
+                            IconButton(
+                              icon: const Icon(Icons.sync),
+                              tooltip: 'Sync now',
+                              onPressed: () {
+                                final syncService = context.read<SyncService>();
+                                syncService.manualSync();
+                              },
+                            ),
+                          ],
+                        );
+                      },
                     ),
-                  ),
+                    IconButton(
+                      icon: const Icon(Icons.settings),
+                      onPressed: () => Navigator.pushNamed(context, '/settings'),
+                    ),
+                  ],
                 ),
-            ],
-          ),
-        )
+                SliverList(
+                  delegate: SliverChildListDelegate([
+                    if (_currentFolder.isNotEmpty)
+                      ListTile(
+                        leading: const Icon(Icons.arrow_back),
+                        title: const Text('..'),
+                        onTap: () => _navigateUp(),
+                      ),
+                    ...folders.map((f) => Dismissible(
+                          key: Key('folder_$f'),
+                          background: Container(
+                            color: Colors.red,
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.only(right: 20.0),
+                            child: const Icon(Icons.delete, color: Colors.white),
+                          ),
+                          direction: DismissDirection.endToStart,
+                          confirmDismiss: (direction) async {
+                            final shouldDelete = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: const Text('Delete Folder'),
+                                content: Text('Delete "$f" and all notes inside?'),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                                  FilledButton(
+                                    onPressed: () => Navigator.pop(ctx, true),
+                                    child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                                  ),
+                                ],
+                              ),
+                            );
+                            return shouldDelete == true;
+                          },
+                          onDismissed: (direction) async {
+                            await notesState.deleteFolder(f);
+                            if (_currentFolder.startsWith(f)) {
+                              _navigateUp();
+                            }
+                          },
+                          child: ListTile(
+                            leading: const Icon(Icons.folder, color: Colors.amber),
+                            title: Text(f.split('/').last),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () => setState(() => _currentFolder = f),
+                            onLongPress: () => _showFolderActions(f),
+                          ),
+                        )),
+                    ...notes
+                        .where((p) => !p.endsWith('/.folder'))
+                        .map((notePath) {
+                      final entry = notesState.manifest.notes[notePath];
+                      if (entry == null) return const SizedBox.shrink();
+                      final statusIcon = _syncStatusIcon(entry.status.name);
+                      return Dismissible(
+                        key: Key('note_$notePath'),
+                        background: Container(
+                          color: Colors.red,
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.only(right: 20.0),
+                          child: const Icon(Icons.delete, color: Colors.white),
+                        ),
+                        direction: DismissDirection.endToStart,
+                        onDismissed: (direction) {
+                          notesState.deleteNote(notePath);
+                        },
+                        child: ListTile(
+                          leading: const Icon(Icons.description, color: Colors.grey),
+                          title: Text(notePath.split('/').last.replaceAll('.md', '')),
+                          subtitle: Text(notePath),
+                          trailing: statusIcon,
+                          onTap: () => _openNote(notesState, notePath),
+                          onLongPress: () => _showNoteActions(notesState, notePath),
+                        ),
+                      );
+                    }),
+                    if (folders.isEmpty && notes.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 64),
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.auto_stories,
+                                size: 48,
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.15),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No notes yet',
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+                                    ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Tap new note to create your first note.',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ]),
+                ),
+              ],
+            ),
+            bottomNavigationBar: BottomAppBar(
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.create_new_folder_outlined),
+                    tooltip: 'New Folder',
+                    onPressed: () => _createFolder(),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.note_add),
+                    tooltip: 'New Note',
+                    onPressed: () => _createNote(),
+                  ),
+                ],
+              ),
+            ),
+          )
         );
       },
     );
