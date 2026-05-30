@@ -1,5 +1,6 @@
 plugins {
     id("com.android.application")
+    id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
@@ -28,14 +29,15 @@ android {
     signingConfigs {
         create("ciConfig") {
             val keystorePath = System.getenv("KEYSTORE_PATH")
-            if (keystorePath != null) {
+            val keystorePassword = System.getenv("KEYSTORE_PASSWORD")
+            if (!keystorePath.isNullOrEmpty() && !keystorePassword.isNullOrEmpty()) {
                 // CI: use the decoded keystore from GitHub Secrets
                 storeFile = file(keystorePath)
-                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                storePassword = keystorePassword
                 keyAlias = System.getenv("KEY_ALIAS")
                 keyPassword = System.getenv("KEY_PASSWORD")
             } else {
-                // Local: use default Android debug keystore
+                // Local or PR: use default Android debug keystore
                 storeFile = file(System.getProperty("user.home") + "/.android/debug.keystore")
                 storePassword = "android"
                 keyAlias = "androiddebugkey"
