@@ -26,8 +26,129 @@ class NoteEditorScreen extends StatefulWidget {
   State<NoteEditorScreen> createState() => _NoteEditorScreenState();
 }
 
+/// A custom TextEditingController that parses simple markdown line prefixes
+/// (like headings, bullets, and checkboxes) and styles them so they visually
+/// pop out (and optionally hide the raw prefix to create a cleaner look).
+class MarkdownSyntaxController extends TextEditingController {
+  MarkdownSyntaxController({super.text});
+
+  @override
+  TextSpan buildTextSpan({
+    required BuildContext context,
+    TextStyle? style,
+    required bool withComposing,
+  }) {
+    final List<TextSpan> spans = [];
+    final lines = text.split('\n');
+
+    for (int i = 0; i < lines.length; i++) {
+      final line = lines[i];
+      final isLastLine = i == lines.length - 1;
+      final lineText = line + (isLastLine ? '' : '\n');
+
+      if (lineText.startsWith('# ')) {
+        spans.add(TextSpan(
+          text: '# ',
+          style: style?.copyWith(
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+        ));
+        spans.add(TextSpan(
+          text: lineText.substring(2),
+          style: style?.copyWith(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+        ));
+      } else if (lineText.startsWith('## ')) {
+        spans.add(TextSpan(
+          text: '## ',
+          style: style?.copyWith(
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ));
+        spans.add(TextSpan(
+          text: lineText.substring(3),
+          style: style?.copyWith(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ));
+      } else if (lineText.startsWith('### ')) {
+        spans.add(TextSpan(
+          text: '### ',
+          style: style?.copyWith(
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ));
+        spans.add(TextSpan(
+          text: lineText.substring(4),
+          style: style?.copyWith(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ));
+      } else if (lineText.startsWith('- [ ] ')) {
+        spans.add(TextSpan(
+          text: '☐ ',
+          style: style?.copyWith(
+            color: Theme.of(context).colorScheme.primary,
+            fontWeight: FontWeight.bold,
+          ),
+        ));
+        // We hide the actual '- [ ] ' visually by making it extremely tiny and transparent
+        spans.add(TextSpan(
+          text: '- [ ] ',
+          style: const TextStyle(fontSize: 0, color: Colors.transparent),
+        ));
+        spans.add(TextSpan(text: lineText.substring(6), style: style));
+      } else if (lineText.startsWith('- [x] ') || lineText.startsWith('- [X] ')) {
+        spans.add(TextSpan(
+          text: '☑ ',
+          style: style?.copyWith(
+            color: Theme.of(context).colorScheme.primary,
+            fontWeight: FontWeight.bold,
+          ),
+        ));
+        spans.add(TextSpan(
+          text: lineText.substring(0, 6),
+          style: const TextStyle(fontSize: 0, color: Colors.transparent),
+        ));
+        spans.add(TextSpan(
+          text: lineText.substring(6),
+          style: style?.copyWith(decoration: TextDecoration.lineThrough),
+        ));
+      } else if (lineText.startsWith('- ')) {
+        spans.add(TextSpan(
+          text: '• ',
+          style: style?.copyWith(
+            color: Theme.of(context).colorScheme.primary,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ));
+        spans.add(TextSpan(
+          text: '- ',
+          style: const TextStyle(fontSize: 0, color: Colors.transparent),
+        ));
+        spans.add(TextSpan(text: lineText.substring(2), style: style));
+      } else {
+        spans.add(TextSpan(text: lineText, style: style));
+      }
+    }
+
+    return TextSpan(style: style, children: spans);
+  }
+}
+
 class _NoteEditorScreenState extends State<NoteEditorScreen> {
-  late TextEditingController _controller;
+  late MarkdownSyntaxController _controller;
   Timer? _debounceTimer;
   bool _hasChanges = false;
   bool _showPreview = false;
@@ -38,7 +159,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   void initState() {
     super.initState();
     final notesState = context.read<NotesState>();
-    _controller = TextEditingController(text: notesState.currentNoteContent ?? '');
+    _controller = MarkdownSyntaxController(text: notesState.currentNoteContent ?? '');
     _controller.addListener(_onTextChanged);
   }
 
@@ -114,25 +235,27 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   }
 
   Widget _buildEditor() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: TextField(
-        controller: _controller,
-        scrollController: _editScroll,
-        maxLines: null,
-        expands: true,
-        textAlignVertical: TextAlignVertical.top,
-        style: TextStyle(
-          fontSize: 16,
-          height: 1.7,
-          color: Theme.of(context).colorScheme.onSurface,
-        ),
-        decoration: InputDecoration(
-          border: InputBorder.none,
-          hintText: 'Start writing markdown...\n\n# Heading 1\n## Heading 2\n**bold** *italic*\n- list item\n[link](url)',
-          hintStyle: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.25),
-          ),
+    return TextField(
+      controller: _controller,
+      scrollController: _editScroll,
+      maxLines: null,
+      expands: true,
+      textAlignVertical: TextAlignVertical.top,
+      style: TextStyle(
+        fontSize: 16,
+        height: 1.7,
+        color: Theme.of(context).colorScheme.onSurface,
+      ),
+      decoration: InputDecoration(
+        border: InputBorder.none,
+        focusedBorder: InputBorder.none,
+        enabledBorder: InputBorder.none,
+        errorBorder: InputBorder.none,
+        disabledBorder: InputBorder.none,
+        contentPadding: const EdgeInsets.all(16),
+        hintText: 'Start writing markdown...\n\n# Heading 1\n## Heading 2\n**bold** *italic*\n- list item\n[link](url)',
+        hintStyle: TextStyle(
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.25),
         ),
       ),
     );
