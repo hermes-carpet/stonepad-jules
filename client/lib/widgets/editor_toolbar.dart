@@ -41,19 +41,25 @@ class _EditorToolbarState extends State<EditorToolbar> {
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      icon: const Icon(Icons.format_bold),
-      onSelected: (value) => _insertFormatting(value),
-      onOpened: () {
-        // Capture selection before the popup steals focus
-        _capturedSelection = widget.controller.selection;
-      },
-      itemBuilder: (context) => _formatItems
-          .map((item) => PopupMenuItem(
-                value: item.type,
-                child: Text(item.label),
-              ))
-          .toList(),
+    return Container(
+      height: 56,
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Row(
+          children: _formatItems.map((item) {
+            return IconButton(
+              icon: Icon(item.icon),
+              tooltip: item.label,
+              onPressed: () {
+                _capturedSelection = widget.controller.selection;
+                _insertFormatting(item.type);
+              },
+            );
+          }).toList(),
+        ),
+      ),
     );
   }
 

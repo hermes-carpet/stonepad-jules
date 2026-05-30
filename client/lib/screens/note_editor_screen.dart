@@ -85,14 +85,6 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
             tooltip: _showPreview ? 'Edit' : 'Preview',
             onPressed: () => setState(() => _showPreview = !_showPreview),
           ),
-          EditorToolbar(
-            controller: _controller,
-            onChanged: () {
-              _hasChanges = true;
-              _debounceTimer?.cancel();
-              _debounceTimer = Timer(TimingConstants.editDebounce, _saveNow);
-            },
-          ),
           IconButton(
             icon: const Icon(Icons.check),
             tooltip: 'Save now',
@@ -100,7 +92,24 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
           ),
         ],
       ),
-      body: _showPreview ? _buildPreview() : _buildEditor(),
+      body: Column(
+        children: [
+          Expanded(
+            child: _showPreview ? _buildPreview() : _buildEditor(),
+          ),
+          if (!_showPreview)
+            SafeArea(
+              child: EditorToolbar(
+                controller: _controller,
+                onChanged: () {
+                  _hasChanges = true;
+                  _debounceTimer?.cancel();
+                  _debounceTimer = Timer(TimingConstants.editDebounce, _saveNow);
+                },
+              ),
+            ),
+        ],
+      ),
     );
   }
 

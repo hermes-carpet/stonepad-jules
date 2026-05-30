@@ -135,9 +135,7 @@ void main() {
         ),
       ));
 
-      await tester.tap(find.byType(PopupMenuButton<String>));
-      await tester.pumpAndSettle();
-      await tester.tap(find.textContaining('Bold'));
+      await tester.tap(find.byTooltip('Bold (**text**)'));
       await tester.pumpAndSettle();
 
       expect(controller.text, '**hello**');
@@ -159,9 +157,7 @@ void main() {
         ),
       ));
 
-      await tester.tap(find.byType(PopupMenuButton<String>));
-      await tester.pumpAndSettle();
-      await tester.tap(find.textContaining('Italic'));
+      await tester.tap(find.byTooltip('Italic (*text*)'));
       await tester.pumpAndSettle();
 
       expect(controller.text, '*hello*');
@@ -181,9 +177,7 @@ void main() {
         ),
       ));
 
-      await tester.tap(find.byType(PopupMenuButton<String>));
-      await tester.pumpAndSettle();
-      await tester.tap(find.textContaining('Heading 1'));
+      await tester.tap(find.byTooltip('Heading 1 (# )'));
       await tester.pumpAndSettle();
 
       expect(controller.text, '# Heading 1');
@@ -203,9 +197,10 @@ void main() {
         ),
       ));
 
-      await tester.tap(find.byType(PopupMenuButton<String>));
+      await tester.drag(find.byType(SingleChildScrollView), const Offset(-500, 0));
       await tester.pumpAndSettle();
-      await tester.tap(find.textContaining('Bullet list'));
+
+      await tester.tap(find.byTooltip('Bullet list (- )'));
       await tester.pumpAndSettle();
 
       expect(controller.text, '- List item');
@@ -225,17 +220,13 @@ void main() {
         ),
       ));
 
-      await tester.tap(find.byType(PopupMenuButton<String>));
-      await tester.pumpAndSettle();
-      await tester.tap(find.textContaining('Heading 1'));
+      await tester.tap(find.byTooltip('Heading 1 (# )'));
       await tester.pumpAndSettle();
       expect(changeCount, 1);
 
       // Reset cursor and try another format
       controller.selection = const TextSelection.collapsed(offset: 0);
-      await tester.tap(find.byType(PopupMenuButton<String>));
-      await tester.pumpAndSettle();
-      await tester.tap(find.textContaining('Heading 2'));
+      await tester.tap(find.byTooltip('Heading 2 (## )'));
       await tester.pumpAndSettle();
       expect(changeCount, 2);
     });
