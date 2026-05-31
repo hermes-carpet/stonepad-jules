@@ -190,8 +190,8 @@ class SyncService {
 
       // Step 5b – handle conflicts (§8.8)
       if (diff.conflicts.isNotEmpty) {
-        _syncState.setOperation(
-            'Handling ${diff.conflicts.length} conflicts...');
+        _syncState
+            .setOperation('Handling ${diff.conflicts.length} conflicts...');
         await _handleConflicts(client, diff.conflicts);
       }
 
@@ -255,8 +255,8 @@ class SyncService {
   /// Pull a note from the server and write it locally.
   Future<void> _pullNote(Minio client, String path) async {
     final stream = await client.getObject(_bucketName, path);
-    final bytes = await stream.fold<List<int>>(
-        <int>[], (acc, chunk) => acc..addAll(chunk));
+    final bytes = await stream
+        .fold<List<int>>(<int>[], (acc, chunk) => acc..addAll(chunk));
     final content = utf8.decode(bytes);
 
     // Write to disk
@@ -381,8 +381,8 @@ class SyncService {
     for (final path in paths) {
       try {
         final stream = await client.getObject(_bucketName, path);
-        final bytes = await stream.fold<List<int>>(
-            <int>[], (acc, chunk) => acc..addAll(chunk));
+        final bytes = await stream
+            .fold<List<int>>(<int>[], (acc, chunk) => acc..addAll(chunk));
         final content = utf8.decode(bytes);
 
         // Write to conflicts directory

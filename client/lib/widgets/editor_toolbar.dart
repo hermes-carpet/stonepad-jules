@@ -2,6 +2,7 @@
 /// Inserts markdown syntax into the text controller at the cursor position.
 /// See §8.9 of the Stonepad v1 Implementation Plan.
 library;
+
 import 'package:flutter/material.dart';
 
 class EditorToolbar extends StatefulWidget {
@@ -24,7 +25,8 @@ class _EditorToolbarState extends State<EditorToolbar> {
   static const _formatItems = <_FormatItem>[
     _FormatItem('bold', 'Bold (**text**)', Icons.format_bold),
     _FormatItem('italic', 'Italic (*text*)', Icons.format_italic),
-    _FormatItem('strikethrough', 'Strikethrough (~~text~~)', Icons.format_strikethrough),
+    _FormatItem('strikethrough', 'Strikethrough (~~text~~)',
+        Icons.format_strikethrough),
     _FormatItem('code', 'Inline code (`text`)', Icons.code),
     _FormatItem('h1', 'Heading 1 (# )', Icons.title),
     _FormatItem('h2', 'Heading 2 (## )', Icons.text_fields),
@@ -59,9 +61,10 @@ class _EditorToolbarState extends State<EditorToolbar> {
 
   void _insertFormatting(String type) {
     final text = widget.controller.text;
-    final selection = _capturedSelection.isValid && _capturedSelection.start >= 0
-        ? _capturedSelection
-        : TextSelection.collapsed(offset: text.length);
+    final selection =
+        _capturedSelection.isValid && _capturedSelection.start >= 0
+            ? _capturedSelection
+            : TextSelection.collapsed(offset: text.length);
     final start = selection.start;
     final end = selection.end;
     final selected = text.substring(start, end);
@@ -110,7 +113,8 @@ class _EditorToolbarState extends State<EditorToolbar> {
         replacement = '[${selected.isEmpty ? 'link text' : selected}](url)';
         cursorOffset = selected.isEmpty ? 1 : 0;
       case 'table':
-        replacement = '\n| Col 1 | Col 2 | Col 3 |\n| --- | --- | --- |\n| A | B | C |\n';
+        replacement =
+            '\n| Col 1 | Col 2 | Col 3 |\n| --- | --- | --- |\n| A | B | C |\n';
         cursorOffset = 1;
       case 'hr':
         replacement = '\n---\n';
@@ -119,8 +123,10 @@ class _EditorToolbarState extends State<EditorToolbar> {
         replacement = selected;
     }
 
-    final newText = text.substring(0, start) + replacement + text.substring(end);
-    final newPos = start + replacement.length - (selected.isNotEmpty ? 0 : cursorOffset);
+    final newText =
+        text.substring(0, start) + replacement + text.substring(end);
+    final newPos =
+        start + replacement.length - (selected.isNotEmpty ? 0 : cursorOffset);
     widget.controller.text = newText;
     widget.controller.selection = TextSelection.collapsed(
       offset: newPos.clamp(0, widget.controller.text.length),

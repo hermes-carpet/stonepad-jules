@@ -1,6 +1,7 @@
 /// Connectivity service — wraps connectivity_plus for testability.
 /// See §8.5 of the Stonepad v1 Implementation Plan.
 library;
+
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 class ConnectivityService {

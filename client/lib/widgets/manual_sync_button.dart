@@ -1,6 +1,7 @@
 /// Manual sync button — triggers an immediate sync cycle.
 /// Available in all sync states per §8.6.
 library;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/sync_service.dart';

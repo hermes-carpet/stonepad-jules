@@ -1,5 +1,6 @@
 /// Tests for SyncService — diff computation, state transitions.
 library;
+
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -42,7 +43,6 @@ void main() {
     tearDown(() {
       syncService.dispose();
     });
-
 
     test('empty manifests produce empty diff', () {
       // _computeDiff is private, we test behavior through runSyncCycle,

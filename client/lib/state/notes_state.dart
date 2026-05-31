@@ -1,6 +1,10 @@
+library;
+
+import "../models/note.dart";
+
 /// Central state for notes — owns the in-memory manifest and
 /// the currently-opened note. Notifies listeners on changes.
-library;
+
 import 'package:flutter/foundation.dart';
 import '../models/manifest.dart';
 import '../models/note_entry.dart';
@@ -26,10 +30,21 @@ class NotesState extends ChangeNotifier {
   }
 
   /// Open a note for editing. Loads its content from disk.
-  Future<void> openNote(String path) async {
+  Future<Note?> openNote(String path) async {
     _currentNotePath = path;
     _currentNoteContent = await _storage.readNote(path);
     notifyListeners();
+
+    if (_currentNoteContent == null) return null;
+
+    // We only need the frontmatter parsed output for the FutureBuilder, so returning a dummy hash/size is fine here
+    return Note(
+      path: path,
+      content: _currentNoteContent!,
+      contentHash: '',
+      sizeBytes: 0,
+      modifiedAt: DateTime.now(),
+    );
   }
 
   /// Update the in-memory note content (debounced save is handled elsewhere).
@@ -42,7 +57,8 @@ class NotesState extends ChangeNotifier {
   Future<void> saveCurrentNote() async {
     if (_currentNotePath == null) return;
 
-    final hash = await _storage.writeNote(_currentNotePath!, _currentNoteContent ?? '');
+    final hash =
+        await _storage.writeNote(_currentNotePath!, _currentNoteContent ?? '');
     final now = DateTime.now();
 
     final existing = _manifest.notes[_currentNotePath!];
@@ -97,10 +113,11 @@ class NotesState extends ChangeNotifier {
   /// Delete an entire folder and all notes within it.
   Future<void> deleteFolder(String folderPath) async {
     final prefix = '$folderPath/';
-    final toDelete = _manifest.notes.keys.where((p) => p.startsWith(prefix)).toList();
+    final toDelete =
+        _manifest.notes.keys.where((p) => p.startsWith(prefix)).toList();
     // Also delete the .folder marker
     toDelete.add('$folderPath/.folder');
-    
+
     for (final path in toDelete) {
       await _storage.deleteNote(path);
       _manifest.notes.remove(path);

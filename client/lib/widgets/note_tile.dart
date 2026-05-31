@@ -1,6 +1,7 @@
 /// Note tile — displays a note entry in the notes list with sync status icon.
 /// See §8.10 of the Stonepad v1 Implementation Plan.
 library;
+
 import 'package:flutter/material.dart';
 
 class NoteTile extends StatelessWidget {

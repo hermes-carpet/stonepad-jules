@@ -4,6 +4,8 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   connectivity_plus
+  dynamic_color
+  local_auth_windows
   screen_retriever_windows
   window_manager
 )

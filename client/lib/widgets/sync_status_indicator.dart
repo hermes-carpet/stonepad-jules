@@ -1,6 +1,7 @@
 /// Sync status indicator — small icon in the app bar showing sync state machine state.
 /// See §8.6 of the Stonepad v1 Implementation Plan.
 library;
+
 import 'package:flutter/material.dart';
 import '../models/sync_state.dart';
 

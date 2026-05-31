@@ -2,8 +2,8 @@
 class StonepadSettings {
   String? serverEndpoint;
   String authMode; // ***, "token", "users", "s3"
-  String? authToken;     // Shared token for "token" mode
-  String? sessionToken;  // Session token for "users" mode (from login)
+  String? authToken; // Shared token for "token" mode
+  String? sessionToken; // Session token for "users" mode (from login)
   String? s3AccessKey;
   String? s3SecretKey;
   String workspaceId;
@@ -14,6 +14,12 @@ class StonepadSettings {
   String? relayEndpoint;
   String? relayAccessKey;
   String? relaySecretKey;
+
+  bool onboardingCompleted;
+  bool useDynamicColor;
+  String? customSeedColor; // Hex string, e.g. "#FF9800"
+  String? fontFamily; // null means default system font
+  bool biometricLockEnabled;
 
   StonepadSettings({
     this.serverEndpoint,
@@ -29,6 +35,11 @@ class StonepadSettings {
     this.relayEndpoint,
     this.relayAccessKey,
     this.relaySecretKey,
+    this.onboardingCompleted = false,
+    this.useDynamicColor = true,
+    this.customSeedColor,
+    this.fontFamily,
+    this.biometricLockEnabled = false,
   });
 
   factory StonepadSettings.fromJson(Map<String, dynamic> json) {
@@ -46,6 +57,11 @@ class StonepadSettings {
       relayEndpoint: json['relay_endpoint'],
       relayAccessKey: json['relay_access_key'],
       relaySecretKey: json['relay_secret_key'],
+      onboardingCompleted: json['onboarding_completed'] ?? false,
+      useDynamicColor: json['use_dynamic_color'] ?? true,
+      customSeedColor: json['custom_seed_color'],
+      fontFamily: json['font_family'],
+      biometricLockEnabled: json['biometric_lock_enabled'] ?? false,
     );
   }
 
@@ -64,13 +80,17 @@ class StonepadSettings {
       'relay_endpoint': relayEndpoint,
       'relay_access_key': relayAccessKey,
       'relay_secret_key': relaySecretKey,
+      'onboarding_completed': onboardingCompleted,
+      'use_dynamic_color': useDynamicColor,
+      'custom_seed_color': customSeedColor,
+      'font_family': fontFamily,
+      'biometric_lock_enabled': biometricLockEnabled,
     };
   }
 
   /// Whether any sync endpoint is configured.
-  bool get hasEndpoint =>
-      serverEndpoint != null && serverEndpoint!.isNotEmpty;
+  bool get hasEndpoint => serverEndpoint != null && serverEndpoint!.isNotEmpty;
 
   /// Whether the user has configured the app at all (onboarding check).
-  bool get isConfigured => hasEndpoint;
+  bool get isConfigured => onboardingCompleted;
 }
