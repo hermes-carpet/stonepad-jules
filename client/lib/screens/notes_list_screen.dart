@@ -340,7 +340,7 @@ class _NotesListScreenState extends State<NotesListScreen> {
         delegate: SliverChildBuilderDelegate(
           (context, index) {
             final n = notesPaths[index];
-            final status = notesState.manifest.notes[n]?['status']?.toString();
+            final status = notesState.manifest.notes[n]?.status.name;
             return _buildNoteCard(n, status ?? 'synced', notesState, theme, isGrid: true);
           },
           childCount: notesPaths.length,
@@ -351,7 +351,7 @@ class _NotesListScreenState extends State<NotesListScreen> {
         delegate: SliverChildBuilderDelegate(
           (context, index) {
             final n = notesPaths[index];
-            final status = notesState.manifest.notes[n]?['status']?.toString();
+            final status = notesState.manifest.notes[n]?.status.name;
             return _buildNoteCard(n, status ?? 'synced', notesState, theme, isGrid: false);
           },
           childCount: notesPaths.length,
