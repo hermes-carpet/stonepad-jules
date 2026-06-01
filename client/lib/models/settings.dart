@@ -20,6 +20,7 @@ class StonepadSettings {
   String? customSeedColor; // Hex string, e.g. "#FF9800"
   String? fontFamily; // null means default system font
   bool biometricLockEnabled;
+  String themeMode; // "system", "light", "dark"
 
   StonepadSettings({
     this.serverEndpoint,
@@ -40,6 +41,7 @@ class StonepadSettings {
     this.customSeedColor,
     this.fontFamily,
     this.biometricLockEnabled = false,
+    this.themeMode = 'system',
   });
 
   factory StonepadSettings.fromJson(Map<String, dynamic> json) {
@@ -62,6 +64,7 @@ class StonepadSettings {
       customSeedColor: json['custom_seed_color'],
       fontFamily: json['font_family'],
       biometricLockEnabled: json['biometric_lock_enabled'] ?? false,
+      themeMode: json['theme_mode'] ?? 'system',
     );
   }
 
@@ -85,6 +88,7 @@ class StonepadSettings {
       'custom_seed_color': customSeedColor,
       'font_family': fontFamily,
       'biometric_lock_enabled': biometricLockEnabled,
+      'theme_mode': themeMode,
     };
   }
 

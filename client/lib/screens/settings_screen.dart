@@ -286,6 +286,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: (v) => settingsState.setWorkspaceId(v),
               ),
 
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Theme Mode'),
+                subtitle: const Text('System, Light, or Dark'),
+                trailing: DropdownButton<String>(
+                  value: settings.themeMode,
+                  items: const [
+                    DropdownMenuItem(value: 'system', child: Text('System')),
+                    DropdownMenuItem(value: 'light', child: Text('Light')),
+                    DropdownMenuItem(value: 'dark', child: Text('Dark')),
+                  ],
+                  onChanged: (v) {
+                    if (v != null) settingsState.setThemeMode(v);
+                  },
+                ),
+              ),
+
               const Divider(height: 32),
 
               // --- Sync Status ---

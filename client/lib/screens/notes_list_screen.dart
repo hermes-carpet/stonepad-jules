@@ -18,7 +18,11 @@ class NotesListScreen extends StatefulWidget {
 class _NotesListScreenState extends State<NotesListScreen> {
   String _currentFolder = '';
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController _searchController = TextEditingController();
   bool _isScrolled = false;
+  String _searchQuery = '';
+  bool _isMasonry = true; // Toggle between list and masonry (gallery) view
+  final Map<String, String?> _colorCache = {};
 
   @override
   void initState() {
@@ -30,6 +34,11 @@ class _NotesListScreenState extends State<NotesListScreen> {
         setState(() => _isScrolled = false);
       }
     });
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase();
+      });
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<NotesState>().loadManifest();
     });
@@ -38,6 +47,7 @@ class _NotesListScreenState extends State<NotesListScreen> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -120,28 +130,115 @@ class _NotesListScreenState extends State<NotesListScreen> {
                         ),
                       ),
                     ),
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 16),
-                    sliver: SliverList(
-                      delegate: SliverChildListDelegate([
-                        ...folders.map((f) => _buildFolderItem(f, colorScheme)),
-                        ...notes
-                            .where((p) => !p.endsWith('/.folder'))
-                            .map((notePath) {
-                          final entry = notesState.manifest.notes[notePath];
-                          if (entry == null) return const SizedBox.shrink();
-                          return _buildNoteCard(
-                              notePath, entry.status.name, notesState, theme);
-                        }),
-                        if (folders.isEmpty &&
-                            notes.where((p) => !p.endsWith('/.folder')).isEmpty)
-                          _buildEmptyState(theme),
-                      ]),
+                  // Search Bar
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        child: TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            hintText: 'Search notes...',
+                            prefixIcon: const Icon(Icons.search),
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                            suffixIcon: _searchQuery.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear),
+                                    onPressed: () => _searchController.clear(),
+                                  )
+                                : null,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                  const SliverPadding(
-                      padding: EdgeInsets.only(bottom: 100)), // Space for FAB
+                  // Filters / View Toggle
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          FilledButton.tonal(
+                            onPressed: () {},
+                            child: const Text('All Notes'),
+                          ),
+                          IconButton(
+                            icon: Icon(_isMasonry ? Icons.list : Icons.grid_view),
+                            onPressed: () {
+                              setState(() {
+                                _isMasonry = !_isMasonry;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (folders.isNotEmpty)
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      sliver: SliverList(
+                        delegate: SliverChildListDelegate(
+                          folders.map((f) => _buildFolderItem(f, colorScheme)).toList(),
+                        ),
+                      ),
+                    ),
+                  if (folders.isEmpty && notes.where((p) => !p.endsWith('/.folder')).isEmpty)
+                    SliverFillRemaining(child: _buildEmptyState(theme))
+                  else ...[
+                    // Pinned Section (Placeholder logic for demonstration)
+                    if (_searchQuery.isEmpty)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                          child: Text(
+                            'PINNED',
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: colorScheme.primary,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                        ),
+                      ),
+                    if (_searchQuery.isEmpty)
+                      SliverPadding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        sliver: _buildNotesGridOrList(
+                            notes.where((p) => !p.endsWith('/.folder')).take(2).toList(),
+                            notesState, theme, colorScheme),
+                      ),
+
+                    // All Notes Section
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                        child: Text(
+                          'ALL NOTES',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      ),
+                    ),
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      sliver: _buildNotesGridOrList(
+                          notes.where((p) => !p.endsWith('/.folder') && p.toLowerCase().contains(_searchQuery)).toList(),
+                          notesState, theme, colorScheme),
+                    ),
+                    const SliverToBoxAdapter(child: SizedBox(height: 100)), // FAB padding
+                  ],
                 ],
               ),
               floatingActionButton: Column(
@@ -230,14 +327,145 @@ class _NotesListScreenState extends State<NotesListScreen> {
     );
   }
 
+  Widget _buildNotesGridOrList(
+      List<String> notesPaths, NotesState notesState, ThemeData theme, ColorScheme colorScheme) {
+    if (_isMasonry) {
+      return SliverGrid(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisSpacing: 16,
+          crossAxisSpacing: 16,
+          childAspectRatio: 0.8,
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final n = notesPaths[index];
+            final status = notesState.manifest.notes[n]?['status']?.toString();
+            return _buildNoteCard(n, status ?? 'synced', notesState, theme, isGrid: true);
+          },
+          childCount: notesPaths.length,
+        ),
+      );
+    } else {
+      return SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final n = notesPaths[index];
+            final status = notesState.manifest.notes[n]?['status']?.toString();
+            return _buildNoteCard(n, status ?? 'synced', notesState, theme, isGrid: false);
+          },
+          childCount: notesPaths.length,
+        ),
+      );
+    }
+  }
+
   Widget _buildNoteCard(
-      String notePath, String status, NotesState notesState, ThemeData theme) {
+      String notePath, String status, NotesState notesState, ThemeData theme, {bool isGrid = false}) {
     final colorScheme = theme.colorScheme;
     final filename = notePath.split('/').last.replaceAll('.md', '');
+
+    Widget buildCard(Color bgColor) {
+      return Card(
+        margin: isGrid ? EdgeInsets.zero : const EdgeInsets.only(bottom: 16),
+        color: bgColor,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(
+              color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: () => _openNote(notesState, notePath),
+          onLongPress: () {
+            _showNoteActions(notesState, notePath);
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        filename,
+                        style: theme.textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                        maxLines: isGrid ? 3 : 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (status == 'modified')
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8),
+                        child: Icon(Icons.cloud_upload,
+                            size: 16, color: colorScheme.primary),
+                      ),
+                    if (status == 'conflict_pending')
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8),
+                        child: Icon(Icons.warning,
+                            size: 16, color: colorScheme.error),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  flex: isGrid ? 1 : 0,
+                  child: Text(
+                    'Tap to view and edit note content...',
+                    style:
+                        TextStyle(color: theme.colorScheme.onSurfaceVariant),
+                    maxLines: isGrid ? null : 2,
+                    overflow: isGrid ? TextOverflow.fade : TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Icon(Icons.calendar_today, size: 12, color: colorScheme.onSurfaceVariant),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Just now', // Placeholder
+                      style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (_colorCache.containsKey(notePath)) {
+      Color bgColor = colorScheme.surfaceContainerLow;
+      final cachedColor = _colorCache[notePath];
+      if (cachedColor != null) {
+        try {
+          bgColor = Color(int.parse(cachedColor.replaceFirst('#', '0xFF')));
+        } catch (_) {}
+      }
+      return buildCard(bgColor);
+    }
 
     return FutureBuilder<String?>(
         future: NoteHelper.getNoteColor(notePath, StorageService()),
         builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.done) {
+             WidgetsBinding.instance.addPostFrameCallback((_) {
+               if (mounted) {
+                 setState(() {
+                   _colorCache[notePath] = snapshot.data;
+                 });
+               }
+             });
+          }
+
           Color bgColor = colorScheme.surfaceContainerLow;
           if (snapshot.hasData && snapshot.data != null) {
             try {
@@ -246,59 +474,7 @@ class _NotesListScreenState extends State<NotesListScreen> {
             } catch (_) {}
           }
 
-          return Card(
-            margin: const EdgeInsets.only(bottom: 16),
-            color: bgColor,
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24),
-              side: BorderSide(
-                  color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
-            ),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(24),
-              onTap: () => _openNote(notesState, notePath),
-              onLongPress: () {
-                _showNoteActions(notesState, notePath);
-              },
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            filename,
-                            style: theme.textTheme.titleLarge
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (status == 'modified')
-                          Icon(Icons.cloud_upload,
-                              size: 16, color: colorScheme.primary),
-                        if (status == 'conflict_pending')
-                          Icon(Icons.warning,
-                              size: 16, color: colorScheme.error),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Tap to view and edit note content...',
-                      style:
-                          TextStyle(color: theme.colorScheme.onSurfaceVariant),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
+          return buildCard(bgColor);
         });
   }
 

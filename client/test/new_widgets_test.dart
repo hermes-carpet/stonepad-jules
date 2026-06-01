@@ -136,9 +136,7 @@ void main() {
         ),
       ));
 
-      await tester.tap(find.byType(PopupMenuButton<String>));
-      await tester.pumpAndSettle();
-      await tester.tap(find.textContaining('Bold'));
+      await tester.tap(find.byIcon(Icons.format_bold));
       await tester.pumpAndSettle();
 
       expect(controller.text, '**hello**');
@@ -160,9 +158,7 @@ void main() {
         ),
       ));
 
-      await tester.tap(find.byType(PopupMenuButton<String>));
-      await tester.pumpAndSettle();
-      await tester.tap(find.textContaining('Italic'));
+      await tester.tap(find.byIcon(Icons.format_italic));
       await tester.pumpAndSettle();
 
       expect(controller.text, '*hello*');
@@ -182,9 +178,9 @@ void main() {
         ),
       ));
 
-      await tester.tap(find.byType(PopupMenuButton<String>));
+      await tester.drag(find.byType(SingleChildScrollView), const Offset(-500, 0));
       await tester.pumpAndSettle();
-      await tester.tap(find.textContaining('Heading 1'));
+      await tester.tap(find.byIcon(Icons.title));
       await tester.pumpAndSettle();
 
       expect(controller.text, '# Heading 1');
@@ -204,9 +200,9 @@ void main() {
         ),
       ));
 
-      await tester.tap(find.byType(PopupMenuButton<String>));
+      await tester.drag(find.byType(SingleChildScrollView), const Offset(-500, 0));
       await tester.pumpAndSettle();
-      await tester.tap(find.textContaining('Bullet list'));
+      await tester.tap(find.byIcon(Icons.format_list_bulleted));
       await tester.pumpAndSettle();
 
       expect(controller.text, '- List item');
@@ -226,17 +222,15 @@ void main() {
         ),
       ));
 
-      await tester.tap(find.byType(PopupMenuButton<String>));
+      await tester.drag(find.byType(SingleChildScrollView), const Offset(-500, 0));
       await tester.pumpAndSettle();
-      await tester.tap(find.textContaining('Heading 1'));
+      await tester.tap(find.byIcon(Icons.title));
       await tester.pumpAndSettle();
       expect(changeCount, 1);
 
       // Reset cursor and try another format
       controller.selection = const TextSelection.collapsed(offset: 0);
-      await tester.tap(find.byType(PopupMenuButton<String>));
-      await tester.pumpAndSettle();
-      await tester.tap(find.textContaining('Heading 2'));
+      await tester.tap(find.byIcon(Icons.text_fields));
       await tester.pumpAndSettle();
       expect(changeCount, 2);
     });

@@ -23,6 +23,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   bool _hasChanges = false;
   bool _showPreview = false;
   final ScrollController _editScroll = ScrollController();
+  bool _isToolbarVisible = true;
 
   Map<String, dynamic> _metadata = {};
   Color _noteColor = Colors.transparent;
@@ -154,12 +155,24 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
           ),
         ],
       ),
-      body: Column(
+      body: Stack(
         children: [
-          Expanded(
-            child: _showPreview ? _buildPreview(theme) : _buildEditor(theme),
+          Column(
+            children: [
+              Expanded(
+                child: _showPreview ? _buildPreview(theme) : _buildEditor(theme),
+              ),
+            ],
           ),
-          if (!_showPreview) _buildBottomToolbar(colorScheme),
+          if (!_showPreview)
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              bottom: _isToolbarVisible ? MediaQuery.of(context).viewInsets.bottom + 16 : -100,
+              left: 16,
+              right: 16,
+              child: _buildBottomToolbar(colorScheme),
+            ),
         ],
       ),
     );
@@ -199,26 +212,38 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   }
 
   Widget _buildEditor(ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      child: TextField(
-        controller: _controller,
-        scrollController: _editScroll,
-        maxLines: null,
-        expands: true,
-        textAlignVertical: TextAlignVertical.top,
-        style: TextStyle(
-          fontSize: 18,
-          height: 1.6,
-          color: theme.colorScheme.onSurface,
-        ),
-        decoration: InputDecoration(
-          border: InputBorder.none,
-          enabledBorder: InputBorder.none,
-          focusedBorder: InputBorder.none,
-          hintText: 'Start writing...',
-          hintStyle: TextStyle(
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+    return NotificationListener<ScrollUpdateNotification>(
+      onNotification: (notification) {
+        if (notification.scrollDelta != null) {
+          if (notification.scrollDelta! > 2 && _isToolbarVisible) {
+            setState(() => _isToolbarVisible = false);
+          } else if (notification.scrollDelta! < -2 && !_isToolbarVisible) {
+            setState(() => _isToolbarVisible = true);
+          }
+        }
+        return false;
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        child: TextField(
+          controller: _controller,
+          scrollController: _editScroll,
+          maxLines: null,
+          expands: true,
+          textAlignVertical: TextAlignVertical.top,
+          style: TextStyle(
+            fontSize: 18,
+            height: 1.6,
+            color: theme.colorScheme.onSurface,
+          ),
+          decoration: InputDecoration(
+            border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            hintText: 'Start writing...',
+            hintStyle: TextStyle(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+            ),
           ),
         ),
       ),
@@ -228,20 +253,23 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   Widget _buildBottomToolbar(ColorScheme colorScheme) {
     return Container(
       decoration: BoxDecoration(
-        color: colorScheme.surface,
-        border: Border(
-            top: BorderSide(
-                color: colorScheme.outlineVariant.withValues(alpha: 0.5))),
+        color: colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: SafeArea(
-        child: EditorToolbar(
-          controller: _controller,
-          onChanged: () {
-            _hasChanges = true;
-            _debounceTimer?.cancel();
-            _debounceTimer = Timer(TimingConstants.editDebounce, _saveNow);
-          },
-        ),
+      child: EditorToolbar(
+        controller: _controller,
+        onChanged: () {
+          _hasChanges = true;
+          _debounceTimer?.cancel();
+          _debounceTimer = Timer(TimingConstants.editDebounce, _saveNow);
+        },
       ),
     );
   }

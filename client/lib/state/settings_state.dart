@@ -128,4 +128,10 @@ class SettingsState extends ChangeNotifier {
     await save();
     notifyListeners();
   }
+
+  Future<void> setThemeMode(String mode) async {
+    _settings.themeMode = mode;
+    await save();
+    notifyListeners();
+  }
 }

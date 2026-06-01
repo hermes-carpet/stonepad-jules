@@ -255,9 +255,24 @@ class _StonepadAppState extends State<StonepadApp> {
                     seedColor: customColor, brightness: Brightness.dark);
               }
 
+              ThemeMode currentThemeMode;
+              switch (settings.themeMode) {
+                case 'light':
+                  currentThemeMode = ThemeMode.light;
+                  break;
+                case 'dark':
+                  currentThemeMode = ThemeMode.dark;
+                  break;
+                case 'system':
+                default:
+                  currentThemeMode = ThemeMode.system;
+                  break;
+              }
+
               return MaterialApp(
                 title: StonepadStrings.appName,
                 debugShowCheckedModeBanner: false,
+                themeMode: currentThemeMode,
                 theme: _buildTheme(lightScheme, settings.fontFamily),
                 darkTheme: _buildTheme(darkScheme, settings.fontFamily),
                 home: _buildHome(),
