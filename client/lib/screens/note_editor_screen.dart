@@ -2,11 +2,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flex_color_picker/flex_color_picker.dart';
-import "package:flutter_markdown_plus/flutter_markdown_plus.dart";
 import '../state/notes_state.dart';
 import '../constants/timing.dart';
-import '../widgets/editor_toolbar.dart';
 import '../models/frontmatter.dart';
+import 'package:flutter_quill/flutter_quill.dart';
+import 'package:markdown_quill/markdown_quill.dart';
+import 'package:markdown/markdown.dart' as md;
 
 class NoteEditorScreen extends StatefulWidget {
   final String notePath;
@@ -18,16 +19,16 @@ class NoteEditorScreen extends StatefulWidget {
 }
 
 class _NoteEditorScreenState extends State<NoteEditorScreen> {
-  late TextEditingController _controller;
+  late QuillController _controller;
   Timer? _debounceTimer;
   bool _hasChanges = false;
-  bool _showPreview = false;
   final ScrollController _editScroll = ScrollController();
   bool _isToolbarVisible = true;
 
   Map<String, dynamic> _metadata = {};
   Color _noteColor = Colors.transparent;
   bool _isTransparent = true;
+  bool _isReady = false;
 
   @override
   void initState() {
@@ -47,22 +48,46 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
       } catch (_) {}
     }
 
-    _controller = TextEditingController(text: fm.body);
+    // Convert Markdown to Quill Delta
+    final mdDocument = md.Document(
+        encodeHtml: false,
+        extensionSet: md.ExtensionSet.gitHubFlavored);
+
+    final mdToDelta = MarkdownToDelta(
+      markdownDocument: mdDocument,
+    );
+
+    final delta = mdToDelta.convert(fm.body.isEmpty ? '\n' : fm.body);
+
+    _controller = QuillController(
+      document: Document.fromDelta(delta),
+      selection: const TextSelection.collapsed(offset: 0),
+    );
     _controller.addListener(_onTextChanged);
+    _isReady = true;
   }
 
   void _onTextChanged() {
-    _hasChanges = true;
+    if (!_hasChanges) {
+      setState(() {
+        _hasChanges = true;
+      });
+    }
     _debounceTimer?.cancel();
     _debounceTimer = Timer(TimingConstants.editDebounce, _saveNow);
   }
 
   Future<void> _saveNow() async {
     if (!_hasChanges) return;
+
+    // Convert Quill Delta back to Markdown
+    final deltaToMd = DeltaToMarkdown();
+    final markdown = deltaToMd.convert(_controller.document.toDelta());
+
     final notesState = context.read<NotesState>();
 
     // Serialize with frontmatter
-    final fullContent = Frontmatter.serialize(_metadata, _controller.text);
+    final fullContent = Frontmatter.serialize(_metadata, markdown);
 
     notesState.updateNoteContent(fullContent);
     await notesState.saveCurrentNote();
@@ -121,6 +146,8 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_isReady) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final filename = widget.notePath.split('/').last.replaceAll('.md', '');
@@ -139,11 +166,6 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
               child: Icon(Icons.circle, size: 10, color: Colors.orange),
             ),
           IconButton(
-            icon: Icon(_showPreview ? Icons.edit : Icons.visibility),
-            tooltip: _showPreview ? 'Edit' : 'Preview',
-            onPressed: () => setState(() => _showPreview = !_showPreview),
-          ),
-          IconButton(
             icon: const Icon(Icons.palette_outlined),
             tooltip: 'Note color',
             onPressed: _pickColor,
@@ -160,116 +182,114 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
           Column(
             children: [
               Expanded(
-                child: _showPreview ? _buildPreview(theme) : _buildEditor(theme),
+                child: NotificationListener<ScrollUpdateNotification>(
+                  onNotification: (notification) {
+                    if (notification.scrollDelta != null) {
+                      if (notification.scrollDelta! > 2 && _isToolbarVisible) {
+                        setState(() => _isToolbarVisible = false);
+                      } else if (notification.scrollDelta! < -2 && !_isToolbarVisible) {
+                        setState(() => _isToolbarVisible = true);
+                      }
+                    }
+                    return false;
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    child: QuillEditor.basic(
+                      controller: _controller,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
-          if (!_showPreview)
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeInOut,
-              bottom: _isToolbarVisible ? MediaQuery.of(context).viewInsets.bottom + 16 : -100,
-              left: 16,
-              right: 16,
-              child: _buildBottomToolbar(colorScheme),
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            bottom: _isToolbarVisible ? MediaQuery.of(context).viewInsets.bottom + 16 : -100,
+            left: 16,
+            right: 16,
+            child: Container(
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(32),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.undo),
+                      onPressed: () => _controller.undo(),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.redo),
+                      onPressed: () => _controller.redo(),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.format_bold),
+                      onPressed: () {
+                        final attr = _controller.getSelectionStyle().attributes[Attribute.bold.key];
+                        _controller.formatSelection(attr == null ? Attribute.bold : Attribute.clone(Attribute.bold, null));
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.format_italic),
+                      onPressed: () {
+                        final attr = _controller.getSelectionStyle().attributes[Attribute.italic.key];
+                        _controller.formatSelection(attr == null ? Attribute.italic : Attribute.clone(Attribute.italic, null));
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.title), // Using title for H1 since format_h1 doesn't exist
+                      onPressed: () {
+                        final attr = _controller.getSelectionStyle().attributes[Attribute.h1.key];
+                        _controller.formatSelection(attr == null ? Attribute.h1 : Attribute.clone(Attribute.h1, null));
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.format_size), // Using format_size for H2
+                      onPressed: () {
+                        final attr = _controller.getSelectionStyle().attributes[Attribute.h2.key];
+                        _controller.formatSelection(attr == null ? Attribute.h2 : Attribute.clone(Attribute.h2, null));
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.format_list_bulleted),
+                      onPressed: () {
+                        final attr = _controller.getSelectionStyle().attributes[Attribute.ul.key];
+                        _controller.formatSelection(attr == null ? Attribute.ul : Attribute.clone(Attribute.ul, null));
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.format_list_numbered),
+                      onPressed: () {
+                        final attr = _controller.getSelectionStyle().attributes[Attribute.ol.key];
+                        _controller.formatSelection(attr == null ? Attribute.ol : Attribute.clone(Attribute.ol, null));
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.check_box_outlined),
+                      onPressed: () {
+                        final attr = _controller.getSelectionStyle().attributes[Attribute.unchecked.key];
+                        _controller.formatSelection(attr == null ? Attribute.unchecked : Attribute.clone(Attribute.unchecked, null));
+                      },
+                    ),
+                  ],
+                ),
+              ),
             ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPreview(ThemeData theme) {
-    return Markdown(
-      data: _controller.text,
-      selectable: true,
-      padding: const EdgeInsets.all(24),
-      styleSheet: MarkdownStyleSheet(
-        h1: TextStyle(
-          fontSize: 28,
-          fontWeight: FontWeight.bold,
-          color: theme.colorScheme.onSurface,
-        ),
-        h2: TextStyle(
-          fontSize: 22,
-          fontWeight: FontWeight.bold,
-          color: theme.colorScheme.onSurface,
-        ),
-        p: TextStyle(
-          fontSize: 18,
-          height: 1.6,
-          color: theme.colorScheme.onSurface,
-        ),
-        code: TextStyle(
-          backgroundColor: theme.colorScheme.surfaceContainerHighest,
-          fontFamily: 'monospace',
-        ),
-        codeblockDecoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEditor(ThemeData theme) {
-    return NotificationListener<ScrollUpdateNotification>(
-      onNotification: (notification) {
-        if (notification.scrollDelta != null) {
-          if (notification.scrollDelta! > 2 && _isToolbarVisible) {
-            setState(() => _isToolbarVisible = false);
-          } else if (notification.scrollDelta! < -2 && !_isToolbarVisible) {
-            setState(() => _isToolbarVisible = true);
-          }
-        }
-        return false;
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        child: TextField(
-          controller: _controller,
-          scrollController: _editScroll,
-          maxLines: null,
-          expands: true,
-          textAlignVertical: TextAlignVertical.top,
-          style: TextStyle(
-            fontSize: 18,
-            height: 1.6,
-            color: theme.colorScheme.onSurface,
-          ),
-          decoration: InputDecoration(
-            border: InputBorder.none,
-            enabledBorder: InputBorder.none,
-            focusedBorder: InputBorder.none,
-            hintText: 'Start writing...',
-            hintStyle: TextStyle(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomToolbar(ColorScheme colorScheme) {
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(32),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
           ),
         ],
-      ),
-      child: EditorToolbar(
-        controller: _controller,
-        onChanged: () {
-          _hasChanges = true;
-          _debounceTimer?.cancel();
-          _debounceTimer = Timer(TimingConstants.editDebounce, _saveNow);
-        },
       ),
     );
   }
