@@ -1,5 +1,6 @@
 /// Settings state — persists user settings to settings.json.
 library;
+
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -94,6 +95,42 @@ class SettingsState extends ChangeNotifier {
     if (endpoint != null) _settings.relayEndpoint = endpoint;
     if (accessKey != null) _settings.relayAccessKey = accessKey;
     if (secretKey != null) _settings.relaySecretKey = secretKey;
+    await save();
+    notifyListeners();
+  }
+
+  Future<void> setOnboardingCompleted(bool value) async {
+    _settings.onboardingCompleted = value;
+    await save();
+    notifyListeners();
+  }
+
+  Future<void> setUseDynamicColor(bool value) async {
+    _settings.useDynamicColor = value;
+    await save();
+    notifyListeners();
+  }
+
+  Future<void> setCustomSeedColor(String? hexColor) async {
+    _settings.customSeedColor = hexColor;
+    await save();
+    notifyListeners();
+  }
+
+  Future<void> setFontFamily(String? fontFamily) async {
+    _settings.fontFamily = fontFamily;
+    await save();
+    notifyListeners();
+  }
+
+  Future<void> setBiometricLockEnabled(bool value) async {
+    _settings.biometricLockEnabled = value;
+    await save();
+    notifyListeners();
+  }
+
+  Future<void> setThemeMode(String mode) async {
+    _settings.themeMode = mode;
     await save();
     notifyListeners();
   }

@@ -1,7 +1,13 @@
+library;
+
+import "package:dynamic_color/dynamic_color.dart";
+import "package:google_fonts/google_fonts.dart";
+import "services/auth_service.dart";
+
 /// Stonepad — Self-hostable markdown notes application.
 /// Mobile-first Flutter client with optional sync.
 /// See §8 of the Stonepad v1 Implementation Plan.
-library;
+
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -136,6 +142,84 @@ class _StonepadAppState extends State<StonepadApp> {
     super.dispose();
   }
 
+  bool _isAuthenticated = false;
+  bool _isAuthenticating = true;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _checkAuth();
+  }
+
+  Future<void> _checkAuth() async {
+    if (!widget.settingsState.settings.biometricLockEnabled) {
+      if (mounted) {
+        setState(() {
+          _isAuthenticated = true;
+          _isAuthenticating = false;
+        });
+      }
+      return;
+    }
+
+    final success = await AuthService.authenticate();
+    if (mounted) {
+      setState(() {
+        _isAuthenticated = success;
+        _isAuthenticating = false;
+      });
+    }
+  }
+
+  ThemeData _buildTheme(ColorScheme colorScheme, String? fontFamily) {
+    final textTheme = fontFamily != null
+        ? GoogleFonts.getTextTheme(
+            fontFamily, ThemeData(colorScheme: colorScheme).textTheme)
+        : null;
+
+    return ThemeData(
+      colorScheme: colorScheme,
+      useMaterial3: true,
+      textTheme: textTheme,
+      scaffoldBackgroundColor: colorScheme.surface,
+      appBarTheme: AppBarTheme(
+        backgroundColor: colorScheme.surface,
+        elevation: 0,
+        scrolledUnderElevation: 0.5,
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colorScheme.outlineVariant),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colorScheme.outlineVariant),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colorScheme.primary, width: 2),
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      ),
+      cardTheme: CardThemeData(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: colorScheme.outlineVariant),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
@@ -146,127 +230,89 @@ class _StonepadAppState extends State<StonepadApp> {
         ChangeNotifierProvider.value(value: _connectivityState),
         Provider.value(value: _syncService),
       ],
-      child: MaterialApp(
-        title: StonepadStrings.appName,
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          // Warm monochrome palette with muted slate accent — not generic Material blue.
-          // Per taste skills: avoid AI-default blue/purple, use off-black text, warm bone canvas.
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF475569), // Slate — muted, professional
-            brightness: Brightness.light,
-          ),
-          useMaterial3: true,
-          brightness: Brightness.light,
-          scaffoldBackgroundColor: const Color(0xFFFBFBFA), // Warm bone
-          cardColor: const Color(0xFFFFFFFF),
-          dividerColor: const Color(0xFFEAEAEA),
-          appBarTheme: const AppBarTheme(
-            backgroundColor: Color(0xFFFBFBFA),
-            foregroundColor: Color(0xFF1A1A1A),
-            elevation: 0,
-            scrolledUnderElevation: 0.5,
-          ),
-          textTheme: const TextTheme(
-            headlineLarge: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: -0.5, color: Color(0xFF1A1A1A)),
-            headlineMedium: TextStyle(fontSize: 24, fontWeight: FontWeight.w600, letterSpacing: -0.3, color: Color(0xFF1A1A1A)),
-            titleLarge: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Color(0xFF1A1A1A)),
-            titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Color(0xFF1A1A1A)),
-            bodyLarge: TextStyle(fontSize: 16, height: 1.6, color: Color(0xFF555555)),
-            bodyMedium: TextStyle(fontSize: 14, height: 1.5, color: Color(0xFF666666)),
-            labelSmall: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5, color: Color(0xFF475569)),
-          ),
-          filledButtonTheme: FilledButtonThemeData(
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF1A1A1A),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-            ),
-          ),
-          inputDecorationTheme: InputDecorationTheme(
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFFEAEAEA)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFFEAEAEA)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFF475569), width: 1.5),
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          ),
-          cardTheme: CardThemeData(
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-              side: const BorderSide(color: Color(0xFFEAEAEA)),
-            ),
-          ),
-          listTileTheme: const ListTileThemeData(
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-          ),
-        ),
-        darkTheme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF94A3B8), // Light slate for dark
-            brightness: Brightness.dark,
-          ),
-          useMaterial3: true,
-          brightness: Brightness.dark,
-          scaffoldBackgroundColor: const Color(0xFF111111),
-          appBarTheme: const AppBarTheme(
-            backgroundColor: Color(0xFF111111),
-            elevation: 0,
-            scrolledUnderElevation: 0.5,
-          ),
-          dividerColor: const Color(0xFF2A2A2A),
-          filledButtonTheme: FilledButtonThemeData(
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFFFBFBFA), // Warm bone (not stark white)
-              foregroundColor: const Color(0xFF111111),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-            ),
-          ),
-          outlinedButtonTheme: OutlinedButtonThemeData(
-            style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFF94A3B8), // Slate accent now visible
-              side: const BorderSide(color: Color(0xFF94A3B8)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-            ),
-          ),
-          inputDecorationTheme: InputDecorationTheme(
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFF2A2A2A)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFF2A2A2A)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFF94A3B8), width: 1.5),
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          ),
-        ),
-        home: _buildHome(),
-        routes: {
-          '/notes': (_) => const NotesListScreen(),
-          '/settings': (_) => const SettingsScreen(),
-          '/login': (_) => const LoginScreen(),
+      child: Consumer<SettingsState>(
+        builder: (context, settingsState, child) {
+          final settings = settingsState.settings;
+          final customColor = settings.customSeedColor != null
+              ? Color(int.parse(
+                  settings.customSeedColor!.replaceFirst('#', '0xFF')))
+              : const Color(0xFF8B5A2B); // Default Amber/Earthy tone
+
+          return DynamicColorBuilder(
+            builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
+              ColorScheme lightScheme;
+              ColorScheme darkScheme;
+
+              if (settings.useDynamicColor &&
+                  lightDynamic != null &&
+                  darkDynamic != null) {
+                lightScheme = lightDynamic;
+                darkScheme = darkDynamic;
+              } else {
+                lightScheme = ColorScheme.fromSeed(
+                    seedColor: customColor, brightness: Brightness.light);
+                darkScheme = ColorScheme.fromSeed(
+                    seedColor: customColor, brightness: Brightness.dark);
+              }
+
+              ThemeMode currentThemeMode;
+              switch (settings.themeMode) {
+                case 'light':
+                  currentThemeMode = ThemeMode.light;
+                  break;
+                case 'dark':
+                  currentThemeMode = ThemeMode.dark;
+                  break;
+                case 'system':
+                default:
+                  currentThemeMode = ThemeMode.system;
+                  break;
+              }
+
+              return MaterialApp(
+                title: StonepadStrings.appName,
+                debugShowCheckedModeBanner: false,
+                themeMode: currentThemeMode,
+                theme: _buildTheme(lightScheme, settings.fontFamily),
+                darkTheme: _buildTheme(darkScheme, settings.fontFamily),
+                home: _buildHome(),
+                routes: {
+                  '/notes': (_) => const NotesListScreen(),
+                  '/settings': (_) => const SettingsScreen(),
+                  '/login': (_) => const LoginScreen(),
+                },
+              );
+            },
+          );
         },
       ),
     );
   }
 
   Widget _buildHome() {
+    if (_isAuthenticating) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (!_isAuthenticated) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.lock_outline, size: 64),
+              const SizedBox(height: 16),
+              const Text('App Locked',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 32),
+              FilledButton(
+                onPressed: _checkAuth,
+                child: const Text('Unlock'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     // Android: if vault not configured, show folder picker first.
     if (!_vaultConfigured) {
       return VaultSetupScreen(

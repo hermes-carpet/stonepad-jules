@@ -2,6 +2,7 @@
 /// Format is versioned; code must check the version field and refuse
 /// to load unknown versions. See §8.4.
 library;
+
 import 'dart:convert';
 import 'note_entry.dart';
 
@@ -63,18 +64,24 @@ class Manifest {
   }
 
   /// Serialize to a JSON string.
-   @override
+  @override
   String toString() => jsonEncode(toJson());
 
   /// Notes with local changes pending sync.
-  List<String> get modifiedPaths =>
-      notes.entries.where((e) => e.value.status == NoteStatus.modified).map((e) => e.key).toList();
+  List<String> get modifiedPaths => notes.entries
+      .where((e) => e.value.status == NoteStatus.modified)
+      .map((e) => e.key)
+      .toList();
 
   /// Notes pending deletion from server.
-  List<String> get deletedPaths =>
-      notes.entries.where((e) => e.value.status == NoteStatus.deleted).map((e) => e.key).toList();
+  List<String> get deletedPaths => notes.entries
+      .where((e) => e.value.status == NoteStatus.deleted)
+      .map((e) => e.key)
+      .toList();
 
   /// Notes with unresolved conflicts.
-  List<String> get conflictPaths =>
-      notes.entries.where((e) => e.value.status == NoteStatus.conflictPending).map((e) => e.key).toList();
+  List<String> get conflictPaths => notes.entries
+      .where((e) => e.value.status == NoteStatus.conflictPending)
+      .map((e) => e.key)
+      .toList();
 }

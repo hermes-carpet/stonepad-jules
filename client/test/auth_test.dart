@@ -1,5 +1,6 @@
 /// Tests for Phase 6 — Token + Users Auth.
 library;
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stonepad/models/settings.dart';
 import 'package:stonepad/services/api_client.dart';
@@ -18,8 +19,7 @@ void main() {
     });
 
     test('users mode stores sessionToken', () {
-      final s = StonepadSettings(
-          authMode: 'users', sessionToken: 'sess-abc');
+      final s = StonepadSettings(authMode: 'users', sessionToken: 'sess-abc');
       expect(s.authMode, 'users');
       expect(s.sessionToken, 'sess-abc');
     });

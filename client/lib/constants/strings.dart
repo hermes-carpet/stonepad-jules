@@ -34,8 +34,7 @@ class StonepadStrings {
   static const move = 'Move';
   static const delete = 'Delete';
   static const conflictDetected = 'Conflict detected';
-  static const conflictMessage =
-      'Server version saved to conflicts folder.';
+  static const conflictMessage = 'Server version saved to conflicts folder.';
   static const syncActive = 'Syncing';
   static const syncManual = 'Manual sync only';
   static const syncOffline = 'Offline';

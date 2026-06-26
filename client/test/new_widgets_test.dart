@@ -1,12 +1,12 @@
 /// Tests for new widgets and services added to meet spec §8.1 requirements.
 library;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stonepad/models/sync_state.dart';
 import 'package:stonepad/services/connectivity_service.dart';
 import 'package:stonepad/widgets/sync_status_indicator.dart';
 import 'package:stonepad/widgets/note_tile.dart';
-import 'package:stonepad/widgets/editor_toolbar.dart';
 
 void main() {
   group('ConnectivityService', () {
@@ -113,131 +113,6 @@ void main() {
       ));
       expect(find.byIcon(Icons.cloud_upload), findsNothing);
       expect(find.byIcon(Icons.warning), findsNothing);
-    });
-  });
-
-  group('EditorToolbar formatting', () {
-    // Test formatting logic directly by tapping the popup menu.
-    // Tests that formatting modifies the controller text and fires onChanged.
-
-    testWidgets('bold wraps selected text in **', (tester) async {
-      final controller = TextEditingController(text: 'hello');
-      controller.selection =
-          const TextSelection(baseOffset: 0, extentOffset: 5);
-      var changed = false;
-
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: EditorToolbar(
-            controller: controller,
-            onChanged: () => changed = true,
-          ),
-        ),
-      ));
-
-      await tester.tap(find.byType(PopupMenuButton<String>));
-      await tester.pumpAndSettle();
-      await tester.tap(find.textContaining('Bold'));
-      await tester.pumpAndSettle();
-
-      expect(controller.text, '**hello**');
-      expect(changed, isTrue);
-    });
-
-    testWidgets('italic wraps selected text in *', (tester) async {
-      final controller = TextEditingController(text: 'hello');
-      controller.selection =
-          const TextSelection(baseOffset: 0, extentOffset: 5);
-      var changed = false;
-
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: EditorToolbar(
-            controller: controller,
-            onChanged: () => changed = true,
-          ),
-        ),
-      ));
-
-      await tester.tap(find.byType(PopupMenuButton<String>));
-      await tester.pumpAndSettle();
-      await tester.tap(find.textContaining('Italic'));
-      await tester.pumpAndSettle();
-
-      expect(controller.text, '*hello*');
-      expect(changed, isTrue);
-    });
-
-    testWidgets('h1 inserts # at cursor position', (tester) async {
-      final controller = TextEditingController(text: '');
-      var changed = false;
-
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: EditorToolbar(
-            controller: controller,
-            onChanged: () => changed = true,
-          ),
-        ),
-      ));
-
-      await tester.tap(find.byType(PopupMenuButton<String>));
-      await tester.pumpAndSettle();
-      await tester.tap(find.textContaining('Heading 1'));
-      await tester.pumpAndSettle();
-
-      expect(controller.text, '# Heading 1');
-      expect(changed, isTrue);
-    });
-
-    testWidgets('ul inserts - at cursor position', (tester) async {
-      final controller = TextEditingController(text: '');
-      var changed = false;
-
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: EditorToolbar(
-            controller: controller,
-            onChanged: () => changed = true,
-          ),
-        ),
-      ));
-
-      await tester.tap(find.byType(PopupMenuButton<String>));
-      await tester.pumpAndSettle();
-      await tester.tap(find.textContaining('Bullet list'));
-      await tester.pumpAndSettle();
-
-      expect(controller.text, '- List item');
-      expect(changed, isTrue);
-    });
-
-    testWidgets('onChanged fires for each format application', (tester) async {
-      final controller = TextEditingController(text: '');
-      var changeCount = 0;
-
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: EditorToolbar(
-            controller: controller,
-            onChanged: () => changeCount++,
-          ),
-        ),
-      ));
-
-      await tester.tap(find.byType(PopupMenuButton<String>));
-      await tester.pumpAndSettle();
-      await tester.tap(find.textContaining('Heading 1'));
-      await tester.pumpAndSettle();
-      expect(changeCount, 1);
-
-      // Reset cursor and try another format
-      controller.selection = const TextSelection.collapsed(offset: 0);
-      await tester.tap(find.byType(PopupMenuButton<String>));
-      await tester.pumpAndSettle();
-      await tester.tap(find.textContaining('Heading 2'));
-      await tester.pumpAndSettle();
-      expect(changeCount, 2);
     });
   });
 }

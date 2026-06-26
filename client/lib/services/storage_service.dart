@@ -2,6 +2,7 @@
 /// All writes use atomic semantics: write to temp file, then rename.
 /// See §8.5 and §9.4 of the Stonepad v1 Implementation Plan.
 library;
+
 import 'dart:convert';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
@@ -86,7 +87,8 @@ class StorageService {
   /// Write a conflict file. See §8.8.
   Future<void> writeConflictFile(String originalPath, String content) async {
     final conflictsDir = await StonepadPaths.conflictsDirectory();
-    final timestamp = DateTime.now().toUtc().toIso8601String().replaceAll(':', '-');
+    final timestamp =
+        DateTime.now().toUtc().toIso8601String().replaceAll(':', '-');
     final safePath = originalPath.replaceAll('/', '_');
     final file = File('${conflictsDir.path}/$timestamp-$safePath');
     await file.writeAsString(content);

@@ -72,12 +72,10 @@ class ApiClient {
       }
 
       if (response.statusCode == 500) {
-        return LoginResult.error(
-            'Server does not support users auth mode');
+        return LoginResult.error('Server does not support users auth mode');
       }
 
-      return LoginResult.error(
-          'Login failed (HTTP ${response.statusCode})');
+      return LoginResult.error('Login failed (HTTP ${response.statusCode})');
     } catch (e) {
       return LoginResult.error('Connection failed: $e');
     }
@@ -103,8 +101,8 @@ class ApiClient {
     final uri = Uri.parse('$baseUrl/api/v1/health');
     try {
       final response = await _httpClient.get(uri).timeout(
-        const Duration(seconds: 2),
-      );
+            const Duration(seconds: 2),
+          );
       return response.statusCode == 200;
     } catch (_) {
       return false;

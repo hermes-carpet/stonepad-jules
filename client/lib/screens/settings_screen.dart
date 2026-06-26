@@ -1,18 +1,13 @@
-/// Settings screen — endpoint configuration, sync toggle, diagnostics.
-/// See §8.11 of the Stonepad v1 Implementation Plan.
-library;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
-import '../state/settings_state.dart';
-import '../state/sync_state_notifier.dart';
-import '../state/notes_state.dart';
-import '../services/sync_service.dart';
+import 'package:flex_color_picker/flex_color_picker.dart';
 import '../models/settings.dart';
-import '../constants/strings.dart';
-import '../constants/paths.dart';
+import '../state/settings_state.dart';
+import '../state/notes_state.dart';
+import '../state/sync_state_notifier.dart';
+import '../services/sync_service.dart';
 import 'login_screen.dart';
-import 'package:flutter/services.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -33,12 +28,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadSettings();
-    });
-  }
-
-  void _loadSettings() {
     final settings = context.read<SettingsState>().settings;
     _endpointController.text = settings.serverEndpoint ?? '';
     _tokenController.text = settings.authToken ?? '';
@@ -59,72 +48,175 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.dispose();
   }
 
+  Future<void> _pickThemeColor(SettingsState settingsState) async {
+    final currentColor = settingsState.settings.customSeedColor != null
+        ? Color(int.parse(
+            settingsState.settings.customSeedColor!.replaceFirst('#', '0xFF')))
+        : const Color(0xFF8B5A2B);
+
+    final Color newColor = await showColorPickerDialog(
+      context,
+      currentColor,
+      title: Text('App Theme Color',
+          style: Theme.of(context).textTheme.titleLarge),
+      width: 40,
+      height: 40,
+      spacing: 0,
+      runSpacing: 0,
+      borderRadius: 20,
+      wheelDiameter: 165,
+      enableOpacity: false,
+      showColorCode: true,
+      colorCodeHasColor: true,
+      pickersEnabled: const <ColorPickerType, bool>{
+        ColorPickerType.both: false,
+        ColorPickerType.primary: true,
+        ColorPickerType.accent: true,
+        ColorPickerType.bw: false,
+        ColorPickerType.custom: true,
+        ColorPickerType.wheel: true,
+      },
+      actionButtons: const ColorPickerActionButtons(
+        okButton: true,
+        closeButton: true,
+        dialogActionButtons: false,
+      ),
+    );
+
+    settingsState.setCustomSeedColor(
+        '#${newColor.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text(StonepadStrings.settingsTitle)),
-      body: Consumer3<SettingsState, SyncStateNotifier, NotesState>(
-        builder: (context, settingsState, syncState, notesState, _) {
+      appBar: AppBar(title: const Text('Settings')),
+      body: Consumer3<SettingsState, NotesState, SyncStateNotifier>(
+        builder: (context, settingsState, notesState, syncState, child) {
           final settings = settingsState.settings;
+          final theme = Theme.of(context);
 
           return ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(24),
             children: [
-              // --- Notes Location (read-only) ---
-              _sectionHeader('Notes Location'),
-              FutureBuilder<String>(
-                future: StonepadPaths.notesDirectory().then((d) => d.path),
-                builder: (_, snapshot) => ListTile(
-                  title: const Text('Storage path'),
-                  subtitle: Text(snapshot.data ?? '...'),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.copy),
-                    onPressed: () {
-                      if (snapshot.data != null) {
-                        Clipboard.setData(ClipboardData(text: snapshot.data!));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Path copied')),
-                        );
-                      }
-                    },
+              // --- Appearance & Security ---
+              _sectionHeader('Appearance & Security'),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Dynamic Color (Android)'),
+                subtitle: const Text('Use system colors if available'),
+                value: settings.useDynamicColor,
+                onChanged: (v) => settingsState.setUseDynamicColor(v),
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('App Theme Color'),
+                subtitle: const Text('Tap to pick a custom accent color'),
+                trailing: Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: settings.customSeedColor != null
+                        ? Color(int.parse(settings.customSeedColor!
+                            .replaceFirst('#', '0xFF')))
+                        : const Color(0xFF8B5A2B),
+                    shape: BoxShape.circle,
                   ),
                 ),
+                onTap: () => _pickThemeColor(settingsState),
               ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('App Font'),
+                subtitle: Text(settings.fontFamily ?? 'System Default'),
+                trailing: const Icon(Icons.arrow_drop_down),
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Select Font'),
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ListTile(
+                              title: const Text('System Default'),
+                              onTap: () {
+                                settingsState.setFontFamily(null);
+                                Navigator.pop(context);
+                              }),
+                          ListTile(
+                              title: const Text('Inter'),
+                              onTap: () {
+                                settingsState.setFontFamily('Inter');
+                                Navigator.pop(context);
+                              }),
+                          ListTile(
+                              title: const Text('Roboto'),
+                              onTap: () {
+                                settingsState.setFontFamily('Roboto');
+                                Navigator.pop(context);
+                              }),
+                          ListTile(
+                              title: const Text('Lora'),
+                              onTap: () {
+                                settingsState.setFontFamily('Lora');
+                                Navigator.pop(context);
+                              }),
+                          ListTile(
+                              title: const Text('Fira Code'),
+                              onTap: () {
+                                settingsState.setFontFamily('Fira Code');
+                                Navigator.pop(context);
+                              }),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Require Biometrics'),
+                subtitle: const Text('Lock app with OS biometrics/PIN'),
+                value: settings.biometricLockEnabled,
+                onChanged: (v) => settingsState.setBiometricLockEnabled(v),
+              ),
+              const Divider(height: 32),
 
-              const Divider(),
-
-              // --- Server Configuration ---
-              _sectionHeader('Server Configuration'),
+              // --- Sync Connection ---
+              _sectionHeader('Sync Connection'),
               _buildTextField(
                 controller: _endpointController,
                 label: 'Server endpoint URL',
                 hint: 'https://stonepad.example.com',
                 onChanged: (v) {
                   settingsState.setServerEndpoint(v);
-                  // Changing endpoint resets verification
                   if (settings.endpointVerified) {
                     settingsState.setEndpointVerified(false);
                   }
                 },
               ),
 
-              // Test Connection button
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: OutlinedButton.icon(
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: settings.endpointVerified
+                        ? Colors.green
+                        : theme.colorScheme.primary,
+                  ),
                   icon: _testing
                       ? const SizedBox(
-                          width: 16, height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
                         )
                       : Icon(
                           settings.endpointVerified
                               ? Icons.check_circle
                               : Icons.wifi_find,
                           size: 18,
-                          color: settings.endpointVerified
-                              ? Colors.green
-                              : null,
                         ),
                   label: Text(
                     settings.endpointVerified
@@ -137,8 +229,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
 
-              // Auth mode
               ListTile(
+                contentPadding: EdgeInsets.zero,
                 title: const Text('Authentication mode'),
                 subtitle: Text(settings.authMode == 'token'
                     ? 'Shared Token'
@@ -176,13 +268,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _buildTextField(
                   controller: _accessKeyController,
                   label: 'Access Key ID',
-                  onChanged: (v) => settingsState.setS3Keys(v, _secretKeyController.text),
+                  onChanged: (v) =>
+                      settingsState.setS3Keys(v, _secretKeyController.text),
                 ),
                 _buildTextField(
                   controller: _secretKeyController,
                   label: 'Secret Access Key',
                   obscureText: true,
-                  onChanged: (v) => settingsState.setS3Keys(_accessKeyController.text, v),
+                  onChanged: (v) =>
+                      settingsState.setS3Keys(_accessKeyController.text, v),
                 ),
               ],
 
@@ -192,12 +286,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: (v) => settingsState.setWorkspaceId(v),
               ),
 
-              const Divider(),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Theme Mode'),
+                subtitle: const Text('System, Light, or Dark'),
+                trailing: DropdownButton<String>(
+                  value: settings.themeMode,
+                  items: const [
+                    DropdownMenuItem(value: 'system', child: Text('System')),
+                    DropdownMenuItem(value: 'light', child: Text('Light')),
+                    DropdownMenuItem(value: 'dark', child: Text('Dark')),
+                  ],
+                  onChanged: (v) {
+                    if (v != null) settingsState.setThemeMode(v);
+                  },
+                ),
+              ),
 
-              // --- Sync Toggle ---
-              _sectionHeader('Sync'),
+              const Divider(height: 32),
+
+              // --- Sync Status ---
+              _sectionHeader('Sync Status'),
               SwitchListTile(
-                title: Text(settings.syncEnabled ? 'Online' : 'Offline'),
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                    settings.syncEnabled ? 'Online (Sync Active)' : 'Offline'),
                 subtitle: const Text('Spotify-style offline mode'),
                 value: settings.syncEnabled,
                 onChanged: (v) {
@@ -206,60 +319,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   syncState.setSyncEnabled(v);
                 },
               ),
-              ElevatedButton.icon(
+              OutlinedButton.icon(
                 icon: const Icon(Icons.sync),
                 label: const Text('Sync now'),
                 onPressed: (settings.hasEndpoint && settings.endpointVerified)
                     ? () {
                         context.read<SyncService>().manualSync();
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Manual sync triggered')),
+                          const SnackBar(
+                              content: Text('Manual sync triggered')),
                         );
                       }
                     : null,
               ),
 
-              const Divider(),
-
-              // --- Relay Configuration ---
-              _sectionHeader('Relay configuration (optional)'),
-              SwitchListTile(
-                title: const Text('Enable relay'),
-                value: settings.relayEnabled,
-                onChanged: (v) => settingsState.setRelayConfig(enabled: v),
-              ),
-              if (settings.relayEnabled)
-                _buildTextField(
-                  controller: _relayEndpointController,
-                  label: 'Relay endpoint URL',
-                  onChanged: (v) => settingsState.setRelayConfig(endpoint: v),
-                ),
-
-              const Divider(),
+              const Divider(height: 32),
 
               // --- Diagnostics ---
               _sectionHeader('Diagnostics'),
               ListTile(
-                title: const Text('Sync state'),
-                subtitle: Text(syncState.state.name),
-              ),
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Sync state'),
+                  trailing: Text(syncState.state.name)),
               ListTile(
-                title: const Text('Notes count'),
-                subtitle: Text('${notesState.allPaths.length}'),
-              ),
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Notes count'),
+                  trailing: Text('${notesState.allPaths.length}')),
               ListTile(
-                title: const Text('Pending changes'),
-                subtitle: Text('${notesState.manifest.modifiedPaths.length}'),
-              ),
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Pending changes'),
+                  trailing:
+                      Text('${notesState.manifest.modifiedPaths.length}')),
               ListTile(
-                title: const Text('Conflicts'),
-                subtitle: Text('${notesState.manifest.conflictPaths.length}'),
-              ),
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Conflicts'),
+                  trailing:
+                      Text('${notesState.manifest.conflictPaths.length}')),
               if (syncState.lastSuccess != null)
                 ListTile(
-                  title: const Text('Last sync'),
-                  subtitle: Text(syncState.lastSuccess!.toLocal().toString()),
-                ),
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Last sync'),
+                    subtitle:
+                        Text(syncState.lastSuccess!.toLocal().toString())),
+
+              const SizedBox(height: 32),
             ],
           );
         },
@@ -267,33 +370,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildUsersModeSection(SettingsState settingsState, StonepadSettings settings) {
-    // If logged in, show session status
+  Widget _buildUsersModeSection(
+      SettingsState settingsState, StonepadSettings settings) {
     if (settings.sessionToken != null && settings.sessionToken!.isNotEmpty) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 8),
-        child: Card(
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.green),
-                const SizedBox(width: 8),
-                const Expanded(child: Text('Signed in')),
-                TextButton(
-                  onPressed: () async {
-                    await settingsState.setSessionToken(null);
-                  },
-                  child: const Text('Sign Out'),
-                ),
-              ],
-            ),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.green),
+              const SizedBox(width: 8),
+              const Expanded(child: Text('Signed in')),
+              TextButton(
+                onPressed: () async {
+                  await settingsState.setSessionToken(null);
+                },
+                child: const Text('Sign Out'),
+              ),
+            ],
           ),
         ),
       );
     }
 
-    // Not logged in — show "Sign In" button
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: OutlinedButton.icon(
@@ -311,12 +415,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _sectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.only(top: 24, bottom: 10),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Text(
         title.toUpperCase(),
         style: Theme.of(context).textTheme.labelSmall!.copyWith(
-          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-        ),
+              color: Theme.of(context).colorScheme.primary,
+              letterSpacing: 1.2,
+              fontWeight: FontWeight.bold,
+            ),
       ),
     );
   }
@@ -330,28 +436,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!mounted) return;
       if (response.statusCode == 200) {
         await settingsState.setEndpointVerified(true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✓ Connection successful'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('✓ Connection successful'),
+                backgroundColor: Colors.green),
+          );
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Server returned ${response.statusCode}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text('Server returned ${response.statusCode}'),
+                backgroundColor: Colors.red),
+          );
+        }
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Connection failed: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Connection failed: $e'),
+              backgroundColor: Colors.red),
+        );
+      }
     } finally {
       if (mounted) setState(() => _testing = false);
     }
@@ -365,14 +474,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ValueChanged<String>? onChanged,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 16),
       child: TextField(
         controller: controller,
         obscureText: obscureText,
         decoration: InputDecoration(
           labelText: label,
           hintText: hint,
-          border: const OutlineInputBorder(),
         ),
         onChanged: onChanged,
       ),

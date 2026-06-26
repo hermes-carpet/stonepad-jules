@@ -4,7 +4,11 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   connectivity_plus
+  dynamic_color
+  file_selector_windows
+  local_auth_windows
   screen_retriever_windows
+  url_launcher_windows
   window_manager
 )
 

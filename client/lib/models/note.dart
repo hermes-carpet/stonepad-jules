@@ -1,5 +1,8 @@
+import 'frontmatter.dart';
+
 /// Note model — a markdown note identified by its path within the workspace.
 /// The path IS the canonical identifier (no UUIDs). See §4.
+
 class Note {
   final String path;
   final String content;
@@ -14,6 +17,12 @@ class Note {
     required this.sizeBytes,
     required this.modifiedAt,
   });
+
+  /// The parsed Frontmatter of this note.
+  Frontmatter get parsedFrontmatter => Frontmatter.parse(content);
+
+  /// Helper to grab just the note background color from frontmatter.
+  String? get colorHex => parsedFrontmatter.metadata['color']?.toString();
 
   /// Returns the note's filename (last component of path).
   String get filename => path.split('/').last;

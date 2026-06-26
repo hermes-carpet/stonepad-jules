@@ -1,6 +1,7 @@
 /// Folder tile — displays a folder in the notes list hierarchy.
 /// See §8.10 of the Stonepad v1 Implementation Plan.
 library;
+
 import 'package:flutter/material.dart';
 
 class FolderTile extends StatelessWidget {
