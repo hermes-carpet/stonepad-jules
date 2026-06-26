@@ -50,8 +50,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
 
     // Convert Markdown to Quill Delta
     final mdDocument = md.Document(
-        encodeHtml: false,
-        extensionSet: md.ExtensionSet.gitHubFlavored);
+        encodeHtml: false, extensionSet: md.ExtensionSet.gitHubFlavored);
 
     final mdToDelta = MarkdownToDelta(
       markdownDocument: mdDocument,
@@ -146,7 +145,8 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_isReady) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (!_isReady)
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -187,14 +187,16 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                     if (notification.scrollDelta != null) {
                       if (notification.scrollDelta! > 2 && _isToolbarVisible) {
                         setState(() => _isToolbarVisible = false);
-                      } else if (notification.scrollDelta! < -2 && !_isToolbarVisible) {
+                      } else if (notification.scrollDelta! < -2 &&
+                          !_isToolbarVisible) {
                         setState(() => _isToolbarVisible = true);
                       }
                     }
                     return false;
                   },
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 16),
                     child: QuillEditor.basic(
                       controller: _controller,
                     ),
@@ -206,7 +208,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
           AnimatedPositioned(
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeInOut,
-            bottom: _isToolbarVisible ? MediaQuery.of(context).viewInsets.bottom + 16 : -100,
+            bottom: _isToolbarVisible ? 16 : -100,
             left: 16,
             right: 16,
             child: Container(
@@ -238,50 +240,96 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                     IconButton(
                       icon: const Icon(Icons.format_bold),
                       onPressed: () {
-                        final attr = _controller.getSelectionStyle().attributes[Attribute.bold.key];
-                        _controller.formatSelection(attr == null ? Attribute.bold : Attribute.clone(Attribute.bold, null));
+                        final isBold = _controller
+                            .getSelectionStyle()
+                            .attributes
+                            .containsKey(Attribute.bold.key);
+                        _controller.formatSelection(isBold
+                            ? Attribute.clone(Attribute.bold, null)
+                            : Attribute.bold);
                       },
                     ),
                     IconButton(
                       icon: const Icon(Icons.format_italic),
                       onPressed: () {
-                        final attr = _controller.getSelectionStyle().attributes[Attribute.italic.key];
-                        _controller.formatSelection(attr == null ? Attribute.italic : Attribute.clone(Attribute.italic, null));
+                        final isItalic = _controller
+                            .getSelectionStyle()
+                            .attributes
+                            .containsKey(Attribute.italic.key);
+                        _controller.formatSelection(isItalic
+                            ? Attribute.clone(Attribute.italic, null)
+                            : Attribute.italic);
                       },
                     ),
                     IconButton(
-                      icon: const Icon(Icons.title), // Using title for H1 since format_h1 doesn't exist
+                      icon: const Icon(Icons
+                          .title), // Using title for H1 since format_h1 doesn't exist
                       onPressed: () {
-                        final attr = _controller.getSelectionStyle().attributes[Attribute.h1.key];
-                        _controller.formatSelection(attr == null ? Attribute.h1 : Attribute.clone(Attribute.h1, null));
+                        final isH1 = _controller
+                            .getSelectionStyle()
+                            .attributes
+                            .containsKey(Attribute.h1.key);
+                        _controller.formatSelection(isH1
+                            ? Attribute.clone(Attribute.h1, null)
+                            : Attribute.h1);
                       },
                     ),
                     IconButton(
-                      icon: const Icon(Icons.format_size), // Using format_size for H2
+                      icon: const Icon(
+                          Icons.format_size), // Using format_size for H2
                       onPressed: () {
-                        final attr = _controller.getSelectionStyle().attributes[Attribute.h2.key];
-                        _controller.formatSelection(attr == null ? Attribute.h2 : Attribute.clone(Attribute.h2, null));
+                        final isH2 = _controller
+                            .getSelectionStyle()
+                            .attributes
+                            .containsKey(Attribute.h2.key);
+                        _controller.formatSelection(isH2
+                            ? Attribute.clone(Attribute.h2, null)
+                            : Attribute.h2);
                       },
                     ),
                     IconButton(
                       icon: const Icon(Icons.format_list_bulleted),
                       onPressed: () {
-                        final attr = _controller.getSelectionStyle().attributes[Attribute.ul.key];
-                        _controller.formatSelection(attr == null ? Attribute.ul : Attribute.clone(Attribute.ul, null));
+                        final isUl = _controller
+                            .getSelectionStyle()
+                            .attributes
+                            .containsKey(Attribute.ul.key);
+                        _controller.formatSelection(isUl
+                            ? Attribute.clone(Attribute.ul, null)
+                            : Attribute.ul);
                       },
                     ),
                     IconButton(
                       icon: const Icon(Icons.format_list_numbered),
                       onPressed: () {
-                        final attr = _controller.getSelectionStyle().attributes[Attribute.ol.key];
-                        _controller.formatSelection(attr == null ? Attribute.ol : Attribute.clone(Attribute.ol, null));
+                        final isOl = _controller
+                            .getSelectionStyle()
+                            .attributes
+                            .containsKey(Attribute.ol.key);
+                        _controller.formatSelection(isOl
+                            ? Attribute.clone(Attribute.ol, null)
+                            : Attribute.ol);
                       },
                     ),
                     IconButton(
                       icon: const Icon(Icons.check_box_outlined),
                       onPressed: () {
-                        final attr = _controller.getSelectionStyle().attributes[Attribute.unchecked.key];
-                        _controller.formatSelection(attr == null ? Attribute.unchecked : Attribute.clone(Attribute.unchecked, null));
+                        final isUnchecked = _controller
+                            .getSelectionStyle()
+                            .attributes
+                            .containsKey(Attribute.unchecked.key);
+                        final isChecked = _controller
+                            .getSelectionStyle()
+                            .attributes
+                            .containsKey(Attribute.checked.key);
+                        if (isUnchecked) {
+                          _controller.formatSelection(Attribute.checked);
+                        } else if (isChecked) {
+                          _controller.formatSelection(
+                              Attribute.clone(Attribute.checked, null));
+                        } else {
+                          _controller.formatSelection(Attribute.unchecked);
+                        }
                       },
                     ),
                   ],

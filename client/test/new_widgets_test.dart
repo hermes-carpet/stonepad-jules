@@ -1,5 +1,6 @@
 /// Tests for new widgets and services added to meet spec §8.1 requirements.
 library;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stonepad/models/sync_state.dart';

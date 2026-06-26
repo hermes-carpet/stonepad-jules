@@ -133,7 +133,8 @@ class _NotesListScreenState extends State<NotesListScreen> {
                   // Search Bar
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 8),
                       child: Container(
                         decoration: BoxDecoration(
                           color: colorScheme.surfaceContainerHighest,
@@ -147,7 +148,8 @@ class _NotesListScreenState extends State<NotesListScreen> {
                             border: InputBorder.none,
                             enabledBorder: InputBorder.none,
                             focusedBorder: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                            contentPadding:
+                                const EdgeInsets.symmetric(vertical: 14),
                             suffixIcon: _searchQuery.isNotEmpty
                                 ? IconButton(
                                     icon: const Icon(Icons.clear),
@@ -162,7 +164,8 @@ class _NotesListScreenState extends State<NotesListScreen> {
                   // Filters / View Toggle
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 16),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -171,7 +174,8 @@ class _NotesListScreenState extends State<NotesListScreen> {
                             child: const Text('All Notes'),
                           ),
                           IconButton(
-                            icon: Icon(_isMasonry ? Icons.list : Icons.grid_view),
+                            icon:
+                                Icon(_isMasonry ? Icons.list : Icons.grid_view),
                             onPressed: () {
                               setState(() {
                                 _isMasonry = !_isMasonry;
@@ -187,18 +191,22 @@ class _NotesListScreenState extends State<NotesListScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       sliver: SliverList(
                         delegate: SliverChildListDelegate(
-                          folders.map((f) => _buildFolderItem(f, colorScheme)).toList(),
+                          folders
+                              .map((f) => _buildFolderItem(f, colorScheme))
+                              .toList(),
                         ),
                       ),
                     ),
-                  if (folders.isEmpty && notes.where((p) => !p.endsWith('/.folder')).isEmpty)
+                  if (folders.isEmpty &&
+                      notes.where((p) => !p.endsWith('/.folder')).isEmpty)
                     SliverFillRemaining(child: _buildEmptyState(theme))
                   else ...[
                     // Pinned Section (Placeholder logic for demonstration)
                     if (_searchQuery.isEmpty)
                       SliverToBoxAdapter(
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 8),
                           child: Text(
                             'PINNED',
                             style: theme.textTheme.labelMedium?.copyWith(
@@ -213,14 +221,20 @@ class _NotesListScreenState extends State<NotesListScreen> {
                       SliverPadding(
                         padding: const EdgeInsets.symmetric(horizontal: 24),
                         sliver: _buildNotesGridOrList(
-                            notes.where((p) => !p.endsWith('/.folder')).take(2).toList(),
-                            notesState, theme, colorScheme),
+                            notes
+                                .where((p) => !p.endsWith('/.folder'))
+                                .take(2)
+                                .toList(),
+                            notesState,
+                            theme,
+                            colorScheme),
                       ),
 
                     // All Notes Section
                     SliverToBoxAdapter(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 16),
                         child: Text(
                           'ALL NOTES',
                           style: theme.textTheme.labelMedium?.copyWith(
@@ -234,10 +248,17 @@ class _NotesListScreenState extends State<NotesListScreen> {
                     SliverPadding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       sliver: _buildNotesGridOrList(
-                          notes.where((p) => !p.endsWith('/.folder') && p.toLowerCase().contains(_searchQuery)).toList(),
-                          notesState, theme, colorScheme),
+                          notes
+                              .where((p) =>
+                                  !p.endsWith('/.folder') &&
+                                  p.toLowerCase().contains(_searchQuery))
+                              .toList(),
+                          notesState,
+                          theme,
+                          colorScheme),
                     ),
-                    const SliverToBoxAdapter(child: SizedBox(height: 100)), // FAB padding
+                    const SliverToBoxAdapter(
+                        child: SizedBox(height: 100)), // FAB padding
                   ],
                 ],
               ),
@@ -327,8 +348,8 @@ class _NotesListScreenState extends State<NotesListScreen> {
     );
   }
 
-  Widget _buildNotesGridOrList(
-      List<String> notesPaths, NotesState notesState, ThemeData theme, ColorScheme colorScheme) {
+  Widget _buildNotesGridOrList(List<String> notesPaths, NotesState notesState,
+      ThemeData theme, ColorScheme colorScheme) {
     if (_isMasonry) {
       return SliverGrid(
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -341,7 +362,8 @@ class _NotesListScreenState extends State<NotesListScreen> {
           (context, index) {
             final n = notesPaths[index];
             final status = notesState.manifest.notes[n]?.status.name;
-            return _buildNoteCard(n, status ?? 'synced', notesState, theme, isGrid: true);
+            return _buildNoteCard(n, status ?? 'synced', notesState, theme,
+                isGrid: true);
           },
           childCount: notesPaths.length,
         ),
@@ -352,7 +374,8 @@ class _NotesListScreenState extends State<NotesListScreen> {
           (context, index) {
             final n = notesPaths[index];
             final status = notesState.manifest.notes[n]?.status.name;
-            return _buildNoteCard(n, status ?? 'synced', notesState, theme, isGrid: false);
+            return _buildNoteCard(n, status ?? 'synced', notesState, theme,
+                isGrid: false);
           },
           childCount: notesPaths.length,
         ),
@@ -361,7 +384,8 @@ class _NotesListScreenState extends State<NotesListScreen> {
   }
 
   Widget _buildNoteCard(
-      String notePath, String status, NotesState notesState, ThemeData theme, {bool isGrid = false}) {
+      String notePath, String status, NotesState notesState, ThemeData theme,
+      {bool isGrid = false}) {
     final colorScheme = theme.colorScheme;
     final filename = notePath.split('/').last.replaceAll('.md', '');
 
@@ -418,20 +442,22 @@ class _NotesListScreenState extends State<NotesListScreen> {
                   flex: isGrid ? 1 : 0,
                   child: Text(
                     'Tap to view and edit note content...',
-                    style:
-                        TextStyle(color: theme.colorScheme.onSurfaceVariant),
+                    style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
                     maxLines: isGrid ? null : 2,
-                    overflow: isGrid ? TextOverflow.fade : TextOverflow.ellipsis,
+                    overflow:
+                        isGrid ? TextOverflow.fade : TextOverflow.ellipsis,
                   ),
                 ),
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    Icon(Icons.calendar_today, size: 12, color: colorScheme.onSurfaceVariant),
+                    Icon(Icons.calendar_today,
+                        size: 12, color: colorScheme.onSurfaceVariant),
                     const SizedBox(width: 4),
                     Text(
                       'Just now', // Placeholder
-                      style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(color: colorScheme.onSurfaceVariant),
                     ),
                   ],
                 ),
@@ -457,13 +483,13 @@ class _NotesListScreenState extends State<NotesListScreen> {
         future: NoteHelper.getNoteColor(notePath, StorageService()),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.done) {
-             WidgetsBinding.instance.addPostFrameCallback((_) {
-               if (mounted) {
-                 setState(() {
-                   _colorCache[notePath] = snapshot.data;
-                 });
-               }
-             });
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                setState(() {
+                  _colorCache[notePath] = snapshot.data;
+                });
+              }
+            });
           }
 
           Color bgColor = colorScheme.surfaceContainerLow;
